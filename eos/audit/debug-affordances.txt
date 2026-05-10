@@ -1,0 +1,55 @@
+# Debug-affordances audit
+# Patterns for debug code that should not ship to production.
+# DEV buttons, console.log, TODO markers, test bypass code.
+# Run against: source code on staged diff (pre-commit) AND release build.
+#
+# Format: one regex per line. # marks a comment. Empty lines ignored.
+#
+# Lesson trace: vibespin-LL-004 (DEV tier-cycling button shipped to
+# production three times before being removed).
+
+# Explicit DEV-mode UI elements
+id=["']dev-btn["']
+class=["'][^"']*\bdev-btn\b
+id=["']debug-panel["']
+devCycleTier
+debugCycle
+__debug__
+
+# console.log and friends in production code
+# (Allowed in dev/test files; flagged in src/ paths.)
+console\.log\(
+console\.debug\(
+console\.warn\(
+console\.error\(
+
+# Common debug TODOs that signal "remove before ship"
+TODO:\s*remove
+TODO:\s*delete
+FIXME
+HACK
+XXX
+DEBUG\s*=\s*true
+
+# Test-bypass patterns — code that lets the operator skip
+# auth/payment/limits during dev. Catastrophic if shipped.
+if\s*\(\s*location\.hostname\s*===\s*["']localhost["']
+if\s*\(\s*window\.__dev__\s*\)
+SKIP_AUTH\s*=\s*true
+BYPASS_PAYWALL
+TEST_MODE\s*=\s*true
+
+# Hardcoded test credentials / test accounts
+test@test\.com
+test@example\.com
+admin:admin
+password123
+
+# Alert/prompt/confirm — usually placeholders during dev
+alert\(["'][^"']*test
+alert\(["'][^"']*debug
+
+# Dev-only routes / endpoints
+/__debug
+/dev-tools
+/admin-bypass

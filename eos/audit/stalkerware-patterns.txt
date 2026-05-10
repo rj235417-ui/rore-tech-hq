@@ -1,0 +1,53 @@
+# Stalkerware-pattern audit
+# Patterns that trigger Google Play auto-enforcement under the
+# Deceptive Behavior policy, even when the code is not invoked.
+# Run against: source code AND release AAB.
+# Applies to: surveillance-adjacent products (Security SPY profile).
+#
+# Format: one regex per line. # marks a comment. Empty lines ignored.
+#
+# Lesson trace: securityspy-LL-001, securityspy-LL-009.
+
+# Hidden icon manipulation — direct trigger for Deceptive Behavior
+# rejection in v1.0.8. setComponentEnabledSetting against MainActivity
+# is detected by Google's static analyzer regardless of invocation.
+setComponentEnabledSetting.*COMPONENT_ENABLED_STATE_DISABLED
+setComponentEnabledSetting.*COMPONENT_ENABLED_STATE_ENABLED
+hideAppIcon
+showAppIcon
+\.alias\s*=\s*"[^"]*launcher
+launcherActivityAlias
+
+# Recents/multitasking concealment — surveillance signal
+excludeFromRecents
+android:excludeFromRecents
+
+# Device admin — heavy surveillance signal; almost never legitimate
+# for a consumer app.
+BIND_DEVICE_ADMIN
+DeviceAdminReceiver
+device_admin_config
+DevicePolicyManager.lockNow
+DevicePolicyManager.wipeData
+
+# Defensive permission over-declaration — stalkerware signal even
+# when unused.
+SYSTEM_ALERT_WINDOW
+
+# Dialer-code launch — covert-activation pattern
+# Apps activated by dialing *#*#code#*#* are stalkerware-classed.
+android.provider.Telephony.SECRET_CODE
+SECRET_CODE_RECEIVER
+
+# Accessibility flags that broaden capture beyond declared use
+canRetrieveWindowContent="true"
+flagIncludeNotImportantViews
+canRequestFilterKeyEvents
+
+# String literals that signal surveillance framing in code
+# (even if marketing copy is correct, code comments and strings
+# leak intent).
+"silent capture"
+"covert"
+"stealth mode"
+"hidden recording"

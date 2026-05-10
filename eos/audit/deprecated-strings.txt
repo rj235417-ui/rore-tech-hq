@@ -1,0 +1,62 @@
+# Deprecated-strings audit
+# Patterns for names, states, entities, and billing language that
+# have changed and should not appear in any current artifact.
+# Run against: all source files in the product repo.
+#
+# Format: one regex per line. # marks a comment. Empty lines ignored.
+#
+# Lesson trace: roretech-website-LL-008 (Delaware vs Massachusetts),
+# roretech-website-LL-009 (Vibe Studios Spinner naming),
+# roreedge-LL-020 (ROREtech Inc. vs RORE Tech), and ongoing
+# canonical-strings discipline (HQ STANDARDS H9).
+
+# Entity name drift — RORE Tech LLC, never "ROREtech Inc."
+ROREtech Inc\.?
+ROREtech, Inc\.?
+ROREtech LLC
+RORE-tech
+RORE_tech
+
+# Governing law drift — Massachusetts, not Delaware
+# Match "Delaware" only in legal-document contexts (governed by, laws of).
+# Plain mentions of Delaware in unrelated content (e.g., a blog post
+# about a Delaware company) are not flagged.
+governed by.{0,30}Delaware
+laws of.{0,30}Delaware
+State of Delaware
+Delaware.{0,30}governing law
+Delaware.{0,30}venue
+
+# Product name drift — Vibe Spinner, never "Vibe Studios Spinner"
+# or "VibeSpin" or "Vibe Spin" in user-facing copy.
+Vibe Studios Spinner
+Vibe Studios
+VibeStudios
+Vibe-Studios
+
+# Security SPY listing-name drift — "Silent Lens" was removed
+# from the Play Store listing field for policy reasons.
+# Allowed in in-app subtitle/branding only; never in store listings,
+# privacy pages, or terms.
+Security SPY - Silent Lens
+Security SPY: Silent Lens
+
+# Old domain references — if RORE Tech ever used a different domain
+# during early drafts.
+# (Add patterns as discovered.)
+
+# Old support email — when address migrates, old address shouldn't
+# linger in privacy pages or contact links.
+# Pattern below is a placeholder — fill with actual deprecated address
+# if/when an address rotates.
+# old-support@roretech\.com
+
+# Billing-language drift — SUB-003 Google Play Billing language
+# applies only to Security SPY. Should not appear on Edge Journal
+# pages (Gumroad/TBD) or Vibe Spinner pages (where applicable).
+# This pattern is product-scoped; uncomment per-product when needed.
+# Google Play Billing.*Edge Journal
+
+# Governance drift — old framing of ownership that doesn't match
+# current LLC structure.
+# (Add patterns as discovered.)
