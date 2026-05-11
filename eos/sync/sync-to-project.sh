@@ -5,7 +5,7 @@
 # rore-tech-hq into a target product project repo.
 #
 # USAGE:
-#   ./sync-to-project.sh [--tier1-only] [--product KEY] <target-path>
+#   ./sync-to-project.sh [--tier1-only] [--product KEY] [--dry-run] <target-path>
 #
 # FLAGS:
 #   --tier1-only       Sync only the HQ STANDARDS section + ROUNDTABLE.md
@@ -197,21 +197,14 @@ echo "────────────────────────�
 echo ""
 
 # Verify HQ artifacts exist
-required_files=(
-  "$TEMPLATE_FILE"
-  "$ROUNDTABLE_FILE"
-  "$PHASE_PROTOCOL_TEMPLATE"
-  "$ADR_TEMPLATE"
-  "$BUG_REPORT_PROMPT"
-)
-for f in "${required_files[@]}"; do
+for f in "$TEMPLATE_FILE" "$ROUNDTABLE_FILE" "$PHASE_PROTOCOL_TEMPLATE" "$ADR_TEMPLATE" "$BUG_REPORT_PROMPT"; do
   if [[ ! -f "$f" ]]; then
     echo "ERROR: required HQ artifact missing: $f" >&2
     exit 4
   fi
 done
 
-# Verify Tier 2 artifacts exist (only if we're syncing them)
+# Tier 2 artifact paths (associative array — bash 4+)
 declare -A TIER2_PATHS
 TIER2_PATHS["FIREBASE_FLUTTER_SETUP"]="$HQ_ROOT/eos/checklists/FIREBASE_FLUTTER_SETUP.md"
 TIER2_PATHS["PLAY_STORE_SUBMISSION"]="$HQ_ROOT/eos/checklists/PLAY_STORE_SUBMISSION.md"
@@ -248,48 +241,82 @@ FILES_SKIPPED=()
 ANOMALIES=()
 NEXT_ACTIONS=()
 
-# Helper: do an action unless dry-run
-do_action() {
+# ─────────────────────────────────────────────────────────────────
+# Helper functions
+# ─────────────────────────────────────────────────────────────────
+
+# Write content to a file. Honors --dry-run. Uses printf to avoid
+# heredoc/quoting issues with arbitrary content.
+write_file() {
+  local dst="$1"
+  local content="$2"
   if [[ "$DRY_RUN" == "yes" ]]; then
-    echo "  [dry-run] would: $*"
-  else
-    eval "$@"
+    echo "  [dry-run] would write: $dst (${#content} chars)"
+    return 0
   fi
+  printf '%s\n' "$content" > "$dst"
 }
 
-# Helper: backup a file before modifying
+# Copy a file from src to dst. Honors --dry-run.
+copy_file() {
+  local src="$1"
+  local dst="$2"
+  if [[ "$DRY_RUN" == "yes" ]]; then
+    echo "  [dry-run] would copy: $src -> $dst"
+    return 0
+  fi
+  cp "$src" "$dst"
+}
+
+# Make a directory. Honors --dry-run.
+make_dir() {
+  local dir="$1"
+  if [[ "$DRY_RUN" == "yes" ]]; then
+    [[ -d "$dir" ]] || echo "  [dry-run] would create dir: $dir"
+    return 0
+  fi
+  mkdir -p "$dir"
+}
+
+# Touch a file. Honors --dry-run.
+touch_file() {
+  local file="$1"
+  if [[ "$DRY_RUN" == "yes" ]]; then
+    [[ -f "$file" ]] || echo "  [dry-run] would touch: $file"
+    return 0
+  fi
+  touch "$file"
+}
+
+# Back up a file before modifying. Returns the backup path on stdout.
 backup_file() {
   local file="$1"
   local backup="${file}.pre-eos-sync-${TODAY}"
   if [[ -f "$file" ]]; then
-    # Don't overwrite an existing backup from today
     local counter=1
     while [[ -f "$backup" ]]; do
       backup="${file}.pre-eos-sync-${TODAY}.${counter}"
       counter=$((counter + 1))
     done
-    do_action "cp \"$file\" \"$backup\""
+    if [[ "$DRY_RUN" == "no" ]]; then
+      cp "$file" "$backup"
+    fi
     echo "$backup"
   fi
 }
 
 # ─────────────────────────────────────────────────────────────────
-# Step 1 — Sync CLAUDE.md
+# Extract sections from template and existing CLAUDE.md
 # ─────────────────────────────────────────────────────────────────
 
-echo "[1/5] Syncing CLAUDE.md..."
-
-TARGET_CLAUDE="$TARGET/CLAUDE.md"
-TEMPLATE_CONTENT="$(cat "$TEMPLATE_FILE")"
-
-# Extract HQ STANDARDS section from template (between # HQ STANDARDS and # PROJECT-SPECIFIC)
+# Extract HQ STANDARDS section from template
 HQ_SECTION="$(awk '
   /^# HQ STANDARDS$/ { capture=1; print; next }
   /^# PROJECT-SPECIFIC$/ { capture=0 }
   capture { print }
 ' "$TEMPLATE_FILE")"
 
-# Extract PROJECT-SPECIFIC section structure from template (the empty version)
+# Extract empty PROJECT-SPECIFIC scaffold from template
 TEMPLATE_PROJECT_SECTION="$(awk '
   /^# PROJECT-SPECIFIC$/ { capture=1 }
   capture { print }
@@ -300,36 +327,39 @@ if [[ -z "$HQ_SECTION" ]]; then
   exit 4
 fi
 
+# ─────────────────────────────────────────────────────────────────
+# Step 1 — Sync CLAUDE.md
+# ─────────────────────────────────────────────────────────────────
+
+echo "[1/5] Syncing CLAUDE.md..."
+
+TARGET_CLAUDE="$TARGET/CLAUDE.md"
+
+# Build the standard header that goes at the top of CLAUDE.md
+CLAUDE_HEADER="# CLAUDE.md — ${PRODUCT_NAME}
+
+> **Synced from:** rore-tech-hq @ ${HQ_SHA} on ${TODAY}
+> Do not edit the HQ STANDARDS section in this product project.
+> Updates flow from HQ at phase kickoff or critical push.
+"
+
 if [[ ! -f "$TARGET_CLAUDE" ]]; then
   # No existing CLAUDE.md — create fresh from template
   echo "  No existing CLAUDE.md. Creating from template."
 
-  NEW_CLAUDE="$(cat <<EOF
-# CLAUDE.md — $PRODUCT_NAME
+  NEW_CONTENT="${CLAUDE_HEADER}
+${HQ_SECTION}
 
-> **Synced from:** rore-tech-hq @ $HQ_SHA on $TODAY
-> Do not edit the HQ STANDARDS section in this product project.
-> Updates flow from HQ at phase kickoff or critical push.
+${TEMPLATE_PROJECT_SECTION}"
 
-$HQ_SECTION
-
-$TEMPLATE_PROJECT_SECTION
-EOF
-)"
-  do_action "cat > \"$TARGET_CLAUDE\" <<'EOS_CLAUDE_END'
-$NEW_CLAUDE
-EOS_CLAUDE_END"
+  write_file "$TARGET_CLAUDE" "$NEW_CONTENT"
   FILES_ADDED+=("CLAUDE.md")
   ANOMALIES+=("CLAUDE.md created fresh — fill in PROJECT-SPECIFIC sections P1–P10")
   NEXT_ACTIONS+=("Open CLAUDE.md, fill in P1–P10 with actual product specifics, then commit")
 
 else
   # CLAUDE.md exists. Check for sectioned format.
-  HAS_HQ_MARKER="no"
   HAS_PROJECT_MARKER="no"
-  if grep -qE "$HQ_STANDARDS_MARKER" "$TARGET_CLAUDE"; then
-    HAS_HQ_MARKER="yes"
-  fi
   if grep -qE "$PROJECT_SPECIFIC_MARKER" "$TARGET_CLAUDE"; then
     HAS_PROJECT_MARKER="yes"
   fi
@@ -338,11 +368,11 @@ else
     # First sync — existing CLAUDE.md doesn't have sectioned format.
     # Write a proposal instead of overwriting.
     PROPOSAL="$TARGET/CLAUDE.md.proposed"
+    ORIGINAL_CONTENT="$(cat "$TARGET_CLAUDE")"
 
-    PROPOSAL_CONTENT="$(cat <<EOF
-# CLAUDE.md — $PRODUCT_NAME
+    PROPOSAL_CONTENT="# CLAUDE.md — ${PRODUCT_NAME}
 
-> **Synced from:** rore-tech-hq @ $HQ_SHA on $TODAY
+> **Synced from:** rore-tech-hq @ ${HQ_SHA} on ${TODAY}
 > **Status:** PROPOSAL — manual merge required.
 >
 > The existing CLAUDE.md does not yet have the sectioned format.
@@ -350,9 +380,9 @@ else
 > PROJECT-SPECIFIC section below, then rename this file to CLAUDE.md.
 > The original CLAUDE.md is preserved unchanged.
 
-$HQ_SECTION
+${HQ_SECTION}
 
-$TEMPLATE_PROJECT_SECTION
+${TEMPLATE_PROJECT_SECTION}
 
 ---
 
@@ -360,12 +390,9 @@ $TEMPLATE_PROJECT_SECTION
 # Merge product-specific content from below into PROJECT-SPECIFIC
 # sections P1–P10 above, then delete this section.
 
-$(cat "$TARGET_CLAUDE")
-EOF
-)"
-    do_action "cat > \"$PROPOSAL\" <<'EOS_PROPOSAL_END'
-$PROPOSAL_CONTENT
-EOS_PROPOSAL_END"
+${ORIGINAL_CONTENT}"
+
+    write_file "$PROPOSAL" "$PROPOSAL_CONTENT"
     FILES_ADDED+=("CLAUDE.md.proposed")
     FILES_PRESERVED+=("CLAUDE.md (unchanged — proposal written to CLAUDE.md.proposed)")
     ANOMALIES+=("PROJECT-SPECIFIC marker not found in existing CLAUDE.md. Wrote CLAUDE.md.proposed for manual merge. Original CLAUDE.md preserved.")
@@ -386,31 +413,19 @@ EOS_PROPOSAL_END"
       exit 4
     fi
 
-    # Compose new CLAUDE.md
-    NEW_CLAUDE="$(cat <<EOF
-# CLAUDE.md — $PRODUCT_NAME
+    NEW_CONTENT="${CLAUDE_HEADER}
+${HQ_SECTION}
 
-> **Synced from:** rore-tech-hq @ $HQ_SHA on $TODAY
-> Do not edit the HQ STANDARDS section in this product project.
-> Updates flow from HQ at phase kickoff or critical push.
-
-$HQ_SECTION
-
-$PROJECT_SECTION
-EOF
-)"
+${PROJECT_SECTION}"
 
     # Check if content would actually change (idempotency)
-    EXISTING_NORMALIZED="$(cat "$TARGET_CLAUDE")"
-    if [[ "$EXISTING_NORMALIZED" == "$NEW_CLAUDE" ]]; then
+    EXISTING_CONTENT="$(cat "$TARGET_CLAUDE")"
+    if [[ "$EXISTING_CONTENT" == "$NEW_CONTENT" ]]; then
       echo "  CLAUDE.md unchanged (idempotent — no diff)."
       FILES_PRESERVED+=("CLAUDE.md (no change needed)")
     else
-      # Back up and rewrite
       BACKUP="$(backup_file "$TARGET_CLAUDE")"
-      do_action "cat > \"$TARGET_CLAUDE\" <<'EOS_CLAUDE_END'
-$NEW_CLAUDE
-EOS_CLAUDE_END"
+      write_file "$TARGET_CLAUDE" "$NEW_CONTENT"
       FILES_MODIFIED+=("CLAUDE.md (backup: $(basename "$BACKUP"))")
       FILES_PRESERVED+=("PROJECT-SPECIFIC section of CLAUDE.md (verbatim)")
     fi
@@ -430,11 +445,11 @@ if [[ -f "$TARGET_ROUNDTABLE" ]]; then
     FILES_PRESERVED+=("ROUNDTABLE.md (no change needed)")
   else
     BACKUP="$(backup_file "$TARGET_ROUNDTABLE")"
-    do_action "cp \"$ROUNDTABLE_FILE\" \"$TARGET_ROUNDTABLE\""
+    copy_file "$ROUNDTABLE_FILE" "$TARGET_ROUNDTABLE"
     FILES_MODIFIED+=("ROUNDTABLE.md (backup: $(basename "$BACKUP"))")
   fi
 else
-  do_action "cp \"$ROUNDTABLE_FILE\" \"$TARGET_ROUNDTABLE\""
+  copy_file "$ROUNDTABLE_FILE" "$TARGET_ROUNDTABLE"
   FILES_ADDED+=("ROUNDTABLE.md")
 fi
 
@@ -445,7 +460,7 @@ fi
 echo "[3/5] Syncing Tier 1 templates..."
 
 TARGET_TEMPLATES="$TARGET/docs/templates"
-do_action "mkdir -p \"$TARGET_TEMPLATES\""
+make_dir "$TARGET_TEMPLATES"
 
 sync_template() {
   local src="$1"
@@ -459,10 +474,10 @@ sync_template() {
 
   if [[ -f "$dst" ]]; then
     BACKUP="$(backup_file "$dst")"
-    do_action "cp \"$src\" \"$dst\""
+    copy_file "$src" "$dst"
     FILES_MODIFIED+=("docs/templates/$name (backup: $(basename "$BACKUP"))")
   else
-    do_action "cp \"$src\" \"$dst\""
+    copy_file "$src" "$dst"
     FILES_ADDED+=("docs/templates/$name")
   fi
 }
@@ -472,8 +487,8 @@ sync_template "$ADR_TEMPLATE" "ADR_TEMPLATE.md"
 sync_template "$BUG_REPORT_PROMPT" "BUG_REPORT_PROMPT.md"
 
 # Ensure docs/protocols and docs/decisions exist
-do_action "mkdir -p \"$TARGET/docs/protocols\""
-do_action "mkdir -p \"$TARGET/docs/decisions\""
+make_dir "$TARGET/docs/protocols"
+make_dir "$TARGET/docs/decisions"
 
 # ─────────────────────────────────────────────────────────────────
 # Step 4 — Sync Tier 2 artifacts (per manifest)
@@ -492,7 +507,7 @@ if [[ "$TIER1_ONLY" == "yes" ]]; then
   fi
 else
   TARGET_STANDARDS="$TARGET/docs/standards"
-  do_action "mkdir -p \"$TARGET_STANDARDS\""
+  make_dir "$TARGET_STANDARDS"
 
   if [[ ${#PRODUCT_TIER2[@]} -eq 0 ]] || [[ -z "${PRODUCT_TIER2[0]:-}" ]]; then
     echo "  No Tier 2 artifacts declared in manifest for $PRODUCT_KEY."
@@ -503,14 +518,13 @@ else
       name="$(basename "$src")"
       dst="$TARGET_STANDARDS/$name"
 
-      # Build the synced-version with header
-      SYNCED_CONTENT="$(cat <<EOF
-> **Synced from:** rore-tech-hq @ $HQ_SHA on $TODAY
+      # Build the synced-version with header prepended to original content
+      SYNC_HEADER="> **Synced from:** rore-tech-hq @ ${HQ_SHA} on ${TODAY}
 > Do not edit in this product. Updates flow from HQ.
-
-$(cat "$src")
-EOF
-)"
+"
+      SRC_CONTENT="$(cat "$src")"
+      SYNCED_CONTENT="${SYNC_HEADER}
+${SRC_CONTENT}"
 
       if [[ -f "$dst" ]]; then
         EXISTING="$(cat "$dst")"
@@ -519,14 +533,10 @@ EOF
           continue
         fi
         BACKUP="$(backup_file "$dst")"
-        do_action "cat > \"$dst\" <<'EOS_SYNCED_END'
-$SYNCED_CONTENT
-EOS_SYNCED_END"
+        write_file "$dst" "$SYNCED_CONTENT"
         FILES_MODIFIED+=("docs/standards/$name (backup: $(basename "$BACKUP"))")
       else
-        do_action "cat > \"$dst\" <<'EOS_SYNCED_END'
-$SYNCED_CONTENT
-EOS_SYNCED_END"
+        write_file "$dst" "$SYNCED_CONTENT"
         FILES_ADDED+=("docs/standards/$name")
       fi
     done
@@ -538,8 +548,8 @@ if [[ "$PRODUCT_SURVEILLANCE" == "yes" ]] && [[ "$TIER1_ONLY" == "no" ]]; then
   AUDIT_DIR="$TARGET/.audit"
   MARKER="$AUDIT_DIR/SURVEILLANCE_ADJACENT"
   if [[ ! -f "$MARKER" ]]; then
-    do_action "mkdir -p \"$AUDIT_DIR\""
-    do_action "touch \"$MARKER\""
+    make_dir "$AUDIT_DIR"
+    touch_file "$MARKER"
     FILES_ADDED+=(".audit/SURVEILLANCE_ADJACENT (opts in to stalkerware-pattern audit)")
   else
     FILES_PRESERVED+=(".audit/SURVEILLANCE_ADJACENT (already present)")
@@ -555,33 +565,41 @@ echo "[5/5] Updating PROJECT_REGISTRY.md at HQ..."
 if [[ ! -f "$REGISTRY_FILE" ]]; then
   ANOMALIES+=("PROJECT_REGISTRY.md not found at $REGISTRY_FILE. Skipping registry update.")
 else
-  # Build the new row for this product
-  TIER2_LIST="$(IFS=', '; echo "${PRODUCT_TIER2[*]:-}")"
+  # Build the Tier 2 list as comma-separated
+  TIER2_LIST=""
+  if [[ ${#PRODUCT_TIER2[@]} -gt 0 ]] && [[ -n "${PRODUCT_TIER2[0]:-}" ]]; then
+    for artifact in "${PRODUCT_TIER2[@]}"; do
+      [[ -z "$artifact" ]] && continue
+      if [[ -z "$TIER2_LIST" ]]; then
+        TIER2_LIST="$artifact"
+      else
+        TIER2_LIST="${TIER2_LIST},${artifact}"
+      fi
+    done
+  fi
   [[ -z "$TIER2_LIST" ]] && TIER2_LIST="(none)"
-  TIER2_STATUS="$([[ "$TIER1_ONLY" == "yes" ]] && echo "Tier 1 only" || echo "Tier 1 + Tier 2")"
+
+  if [[ "$TIER1_ONLY" == "yes" ]]; then
+    TIER2_STATUS="Tier 1 only"
+  else
+    TIER2_STATUS="Tier 1 + Tier 2"
+  fi
 
   NEW_ROW="| $PRODUCT_NAME | $PRODUCT_KEY | $TIER2_STATUS | $HQ_SHA | $TODAY | $TIER2_LIST |"
 
-  # Idempotency: if a row for this product already exists with same SHA and date,
-  # don't add a duplicate.
-  if grep -qE "^\| ${PRODUCT_NAME} \|" "$REGISTRY_FILE" 2>/dev/null; then
-    # Update existing row
-    if [[ "$DRY_RUN" == "yes" ]]; then
-      echo "  [dry-run] would: update existing row for $PRODUCT_NAME in PROJECT_REGISTRY.md"
-    else
+  if [[ "$DRY_RUN" == "yes" ]]; then
+    echo "  [dry-run] would update PROJECT_REGISTRY.md with row: $NEW_ROW"
+  else
+    # Idempotency: if a row for this product already exists, update in place.
+    # Otherwise append before SYNC_ROWS_END marker or at end of file.
+    if grep -qE "^\| ${PRODUCT_NAME} \|" "$REGISTRY_FILE" 2>/dev/null; then
       TMP="$(mktemp)"
       awk -v product="$PRODUCT_NAME" -v new_row="$NEW_ROW" '
         $0 ~ "^\\| " product " \\|" { print new_row; next }
         { print }
       ' "$REGISTRY_FILE" > "$TMP"
       mv "$TMP" "$REGISTRY_FILE"
-    fi
-  else
-    # Append new row before the closing marker, or at end if no marker
-    if [[ "$DRY_RUN" == "yes" ]]; then
-      echo "  [dry-run] would: append new row for $PRODUCT_NAME to PROJECT_REGISTRY.md"
     else
-      # Find the line "<!-- SYNC_ROWS_END -->" or append at end
       if grep -q "SYNC_ROWS_END" "$REGISTRY_FILE"; then
         TMP="$(mktemp)"
         awk -v new_row="$NEW_ROW" '
@@ -605,22 +623,35 @@ echo "Writing SYNC_REPORT.md..."
 
 REPORT="$TARGET/SYNC_REPORT.md"
 
-# Build the report content
-build_list() {
+# Helper to render a list (or "(none)")
+render_list() {
   local arr_name="$1[@]"
   local items=("${!arr_name:-}")
+  local out=""
   if [[ ${#items[@]} -eq 0 ]] || [[ -z "${items[0]:-}" ]]; then
     echo "(none)"
-  else
-    for item in "${items[@]}"; do
-      [[ -z "$item" ]] && continue
-      echo "- $item"
-    done
+    return
   fi
+  for item in "${items[@]}"; do
+    [[ -z "$item" ]] && continue
+    if [[ -z "$out" ]]; then
+      out="- $item"
+    else
+      out="${out}
+- $item"
+    fi
+  done
+  echo "$out"
 }
 
-REPORT_CONTENT="$(cat <<EOF
-# SYNC_REPORT — $PRODUCT_NAME
+ADDED_LIST="$(render_list FILES_ADDED)"
+MODIFIED_LIST="$(render_list FILES_MODIFIED)"
+PRESERVED_LIST="$(render_list FILES_PRESERVED)"
+SKIPPED_LIST="$(render_list FILES_SKIPPED)"
+ANOMALIES_LIST="$(render_list ANOMALIES)"
+NEXT_ACTIONS_LIST="$(render_list NEXT_ACTIONS)"
+
+REPORT_CONTENT="# SYNC_REPORT — ${PRODUCT_NAME}
 
 > Auto-generated by \`rore-tech-hq/eos/sync/sync-to-project.sh\`. Each
 > sync overwrites this file. Prior sync history is in git log of the
@@ -630,52 +661,46 @@ REPORT_CONTENT="$(cat <<EOF
 
 | Field | Value |
 |---|---|
-| Product | $PRODUCT_NAME |
-| Product key | $PRODUCT_KEY |
-| Sync date | $TODAY |
-| Sync time | $NOW |
-| HQ commit (short) | $HQ_SHA |
-| HQ commit (full) | $HQ_SHA_FULL |
-| Tier1-only mode | $TIER1_ONLY |
-| Dry run | $DRY_RUN |
+| Product | ${PRODUCT_NAME} |
+| Product key | ${PRODUCT_KEY} |
+| Sync date | ${TODAY} |
+| Sync time | ${NOW} |
+| HQ commit (short) | ${HQ_SHA} |
+| HQ commit (full) | ${HQ_SHA_FULL} |
+| Tier1-only mode | ${TIER1_ONLY} |
+| Dry run | ${DRY_RUN} |
 
 ## Files added
 
-$(build_list FILES_ADDED)
+${ADDED_LIST}
 
 ## Files modified
 
-$(build_list FILES_MODIFIED)
+${MODIFIED_LIST}
 
 ## Files preserved (no changes needed, or PROJECT-SPECIFIC content kept verbatim)
 
-$(build_list FILES_PRESERVED)
+${PRESERVED_LIST}
 
 ## Files skipped
 
-$(build_list FILES_SKIPPED)
+${SKIPPED_LIST}
 
 ## Anomalies
 
-$(build_list ANOMALIES)
+${ANOMALIES_LIST}
 
 ## Next actions
 
-$(build_list NEXT_ACTIONS)
+${NEXT_ACTIONS_LIST}
 
 ---
 
-*Per-sync paper trail. When you want to know "when did we adopt EOS
-vX.Y on this project?", read the chain of these reports in git
-history.*
-EOF
-)"
+*Per-sync paper trail. When you want to know \"when did we adopt EOS
+vX.Y on this project?\", read the chain of these reports in git
+history.*"
 
-if [[ "$DRY_RUN" == "yes" ]]; then
-  echo "  [dry-run] would write SYNC_REPORT.md (${#REPORT_CONTENT} chars)"
-else
-  echo "$REPORT_CONTENT" > "$REPORT"
-fi
+write_file "$REPORT" "$REPORT_CONTENT"
 
 # ─────────────────────────────────────────────────────────────────
 # Summary
