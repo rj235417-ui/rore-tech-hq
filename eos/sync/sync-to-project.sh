@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # rore-tech-hq/eos/sync/sync-to-project.sh
 #
 # Syncs HQ STANDARDS and manifest-declared Tier 2 artifacts from
@@ -24,10 +24,18 @@
 #
 # SAFETY:
 #   - Never deletes files in the target project.
-#   - Never runs git commands.
-#   - Backs up CLAUDE.md to CLAUDE.md.pre-eos-sync-YYYY-MM-DD before
-#     modifying.
+#   - Never runs git commands against the target.
+#   - Backs up files to *.pre-eos-sync-YYYY-MM-DD before modifying.
 #   - Idempotent: running twice produces zero diff on second run.
+#
+# COMPATIBILITY:
+#   - Works on macOS default bash 3.2 and later.
+#   - No associative arrays. No mapfile. No ${var,,}.
+#   - Standard POSIX tools only: awk, sed, grep, cmp, cp, mv,
+#     mktemp, basename, dirname, date, tr, printf, cat.
+#   - git is used only to read HQ commit SHA (optional, falls back
+#     to "not-in-git" if HQ is not a git repo). Never run against
+#     the target.
 
 set -euo pipefail
 
@@ -47,15 +55,11 @@ BUG_REPORT_PROMPT="$HQ_ROOT/eos/templates/BUG_REPORT_PROMPT.md"
 
 REGISTRY_FILE="$HQ_ROOT/org/PROJECT_REGISTRY.md"
 
-# Markers that separate the two sections of CLAUDE.md
-HQ_STANDARDS_MARKER="^# HQ STANDARDS"
 PROJECT_SPECIFIC_MARKER="^# PROJECT-SPECIFIC"
 
-# Today's date in ISO format
 TODAY="$(date +%Y-%m-%d)"
 NOW="$(date +%Y-%m-%dT%H:%M:%S%z)"
 
-# HQ commit SHA — if HQ is a git repo, capture current HEAD
 if (cd "$HQ_ROOT" && git rev-parse --git-dir >/dev/null 2>&1); then
   HQ_SHA="$(cd "$HQ_ROOT" && git rev-parse --short HEAD)"
   HQ_SHA_FULL="$(cd "$HQ_ROOT" && git rev-parse HEAD)"
@@ -63,6 +67,27 @@ else
   HQ_SHA="not-in-git"
   HQ_SHA_FULL="not-in-git"
 fi
+
+# ─────────────────────────────────────────────────────────────────
+# Tier 2 path resolver — POSIX-compatible (no associative arrays)
+# ─────────────────────────────────────────────────────────────────
+
+# Given an artifact key, echo its source path under HQ_ROOT.
+# Returns 1 if the key is unknown.
+# To add a new Tier 2 artifact: add one line below.
+get_tier2_path() {
+  case "$1" in
+    FIREBASE_FLUTTER_SETUP)         echo "$HQ_ROOT/eos/checklists/FIREBASE_FLUTTER_SETUP.md" ;;
+    PLAY_STORE_SUBMISSION)          echo "$HQ_ROOT/eos/checklists/PLAY_STORE_SUBMISSION.md" ;;
+    EXTERNAL_DATA_IMPORTER)         echo "$HQ_ROOT/eos/checklists/EXTERNAL_DATA_IMPORTER.md" ;;
+    AI_PUBLISHING_PIPELINE)         echo "$HQ_ROOT/eos/checklists/AI_PUBLISHING_PIPELINE.md" ;;
+    SIGNING_KEY_BIRTH_CERTIFICATE)  echo "$HQ_ROOT/eos/checklists/SIGNING_KEY_BIRTH_CERTIFICATE.md" ;;
+    DEPLOYMENT_CHECKLISTS)          echo "$HQ_ROOT/eos/checklists/DEPLOYMENT_CHECKLISTS.md" ;;
+    LAUNCH_PLAN_TEMPLATE)           echo "$HQ_ROOT/eos/templates/LAUNCH_PLAN_TEMPLATE.md" ;;
+    SEO_TRIAGE)                     echo "$HQ_ROOT/eos/runbooks/SEO_TRIAGE.md" ;;
+    *)                              return 1 ;;
+  esac
+}
 
 # ─────────────────────────────────────────────────────────────────
 # Argument parsing
@@ -73,7 +98,7 @@ PRODUCT_KEY=""
 DRY_RUN="no"
 TARGET=""
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
   case "$1" in
     --tier1-only)
       TIER1_ONLY="yes"
@@ -88,11 +113,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      sed -n '3,30p' "$0"
+      sed -n '3,40p' "$0"
       exit 0
       ;;
     *)
-      if [[ -z "$TARGET" ]]; then
+      if [ -z "$TARGET" ]; then
         TARGET="$1"
       else
         echo "ERROR: unexpected argument: $1" >&2
@@ -103,14 +128,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$TARGET" ]]; then
+if [ -z "$TARGET" ]; then
   echo "ERROR: target project path required" >&2
   echo "Usage: $0 [--tier1-only] [--product KEY] [--dry-run] <target-path>" >&2
   exit 1
 fi
 
-# Resolve target to absolute path
-if [[ ! -d "$TARGET" ]]; then
+if [ ! -d "$TARGET" ]; then
   echo "ERROR: target path does not exist or is not a directory: $TARGET" >&2
   exit 1
 fi
@@ -120,34 +144,35 @@ TARGET="$(cd "$TARGET" && pwd)"
 # Load manifest
 # ─────────────────────────────────────────────────────────────────
 
-if [[ ! -f "$MANIFEST_FILE" ]]; then
+if [ ! -f "$MANIFEST_FILE" ]; then
   echo "ERROR: manifest not found at $MANIFEST_FILE" >&2
   exit 3
 fi
 
 # shellcheck source=/dev/null
-source "$MANIFEST_FILE"
+. "$MANIFEST_FILE"
 
 # ─────────────────────────────────────────────────────────────────
 # Determine product key (from flag, or auto-detect from path)
 # ─────────────────────────────────────────────────────────────────
 
-if [[ -z "$PRODUCT_KEY" ]]; then
-  # Auto-detect: search the path against PATH_HINT_* values
+if [ -z "$PRODUCT_KEY" ]; then
   target_lower="$(echo "$TARGET" | tr '[:upper:]' '[:lower:]')"
   for key in "${KNOWN_PRODUCTS[@]}"; do
     hint_var="PATH_HINT_${key}"
     hints="${!hint_var:-}"
     for hint in $hints; do
-      if [[ "$target_lower" == *"$hint"* ]]; then
-        PRODUCT_KEY="$key"
-        break 2
-      fi
+      case "$target_lower" in
+        *"$hint"*)
+          PRODUCT_KEY="$key"
+          break 2
+          ;;
+      esac
     done
   done
 fi
 
-if [[ -z "$PRODUCT_KEY" ]]; then
+if [ -z "$PRODUCT_KEY" ]; then
   echo "ERROR: could not auto-detect product from path $TARGET" >&2
   echo "Use --product KEY to specify. Known products:" >&2
   for key in "${KNOWN_PRODUCTS[@]}"; do
@@ -159,12 +184,12 @@ fi
 # Verify product is in KNOWN_PRODUCTS
 known="no"
 for key in "${KNOWN_PRODUCTS[@]}"; do
-  if [[ "$key" == "$PRODUCT_KEY" ]]; then
+  if [ "$key" = "$PRODUCT_KEY" ]; then
     known="yes"
     break
   fi
 done
-if [[ "$known" == "no" ]]; then
+if [ "$known" = "no" ]; then
   echo "ERROR: $PRODUCT_KEY is not in KNOWN_PRODUCTS in the manifest" >&2
   exit 3
 fi
@@ -196,34 +221,22 @@ echo " Dry run:       $DRY_RUN"
 echo "─────────────────────────────────────────────────────────"
 echo ""
 
-# Verify HQ artifacts exist
 for f in "$TEMPLATE_FILE" "$ROUNDTABLE_FILE" "$PHASE_PROTOCOL_TEMPLATE" "$ADR_TEMPLATE" "$BUG_REPORT_PROMPT"; do
-  if [[ ! -f "$f" ]]; then
+  if [ ! -f "$f" ]; then
     echo "ERROR: required HQ artifact missing: $f" >&2
     exit 4
   fi
 done
 
-# Tier 2 artifact paths (associative array — bash 4+)
-declare -A TIER2_PATHS
-TIER2_PATHS["FIREBASE_FLUTTER_SETUP"]="$HQ_ROOT/eos/checklists/FIREBASE_FLUTTER_SETUP.md"
-TIER2_PATHS["PLAY_STORE_SUBMISSION"]="$HQ_ROOT/eos/checklists/PLAY_STORE_SUBMISSION.md"
-TIER2_PATHS["EXTERNAL_DATA_IMPORTER"]="$HQ_ROOT/eos/checklists/EXTERNAL_DATA_IMPORTER.md"
-TIER2_PATHS["AI_PUBLISHING_PIPELINE"]="$HQ_ROOT/eos/checklists/AI_PUBLISHING_PIPELINE.md"
-TIER2_PATHS["SIGNING_KEY_BIRTH_CERTIFICATE"]="$HQ_ROOT/eos/checklists/SIGNING_KEY_BIRTH_CERTIFICATE.md"
-TIER2_PATHS["DEPLOYMENT_CHECKLISTS"]="$HQ_ROOT/eos/checklists/DEPLOYMENT_CHECKLISTS.md"
-TIER2_PATHS["LAUNCH_PLAN_TEMPLATE"]="$HQ_ROOT/eos/templates/LAUNCH_PLAN_TEMPLATE.md"
-TIER2_PATHS["SEO_TRIAGE"]="$HQ_ROOT/eos/runbooks/SEO_TRIAGE.md"
-
-if [[ "$TIER1_ONLY" == "no" ]] && [[ ${#PRODUCT_TIER2[@]} -gt 0 ]]; then
+if [ "$TIER1_ONLY" = "no" ] && [ ${#PRODUCT_TIER2[@]} -gt 0 ]; then
   for artifact in "${PRODUCT_TIER2[@]}"; do
-    [[ -z "$artifact" ]] && continue
-    path="${TIER2_PATHS[$artifact]:-}"
-    if [[ -z "$path" ]]; then
+    [ -z "$artifact" ] && continue
+    if ! path="$(get_tier2_path "$artifact")"; then
       echo "ERROR: manifest references unknown Tier 2 artifact: $artifact" >&2
+      echo "  (Add a case to get_tier2_path() in sync-to-project.sh)" >&2
       exit 3
     fi
-    if [[ ! -f "$path" ]]; then
+    if [ ! -f "$path" ]; then
       echo "ERROR: Tier 2 artifact file missing: $path" >&2
       exit 4
     fi
@@ -245,60 +258,54 @@ NEXT_ACTIONS=()
 # Helper functions
 # ─────────────────────────────────────────────────────────────────
 
-# Write content to a file. Honors --dry-run. Uses printf to avoid
-# heredoc/quoting issues with arbitrary content.
 write_file() {
-  local dst="$1"
-  local content="$2"
-  if [[ "$DRY_RUN" == "yes" ]]; then
+  dst="$1"
+  content="$2"
+  if [ "$DRY_RUN" = "yes" ]; then
     echo "  [dry-run] would write: $dst (${#content} chars)"
     return 0
   fi
   printf '%s\n' "$content" > "$dst"
 }
 
-# Copy a file from src to dst. Honors --dry-run.
 copy_file() {
-  local src="$1"
-  local dst="$2"
-  if [[ "$DRY_RUN" == "yes" ]]; then
+  src="$1"
+  dst="$2"
+  if [ "$DRY_RUN" = "yes" ]; then
     echo "  [dry-run] would copy: $src -> $dst"
     return 0
   fi
   cp "$src" "$dst"
 }
 
-# Make a directory. Honors --dry-run.
 make_dir() {
-  local dir="$1"
-  if [[ "$DRY_RUN" == "yes" ]]; then
-    [[ -d "$dir" ]] || echo "  [dry-run] would create dir: $dir"
+  dir="$1"
+  if [ "$DRY_RUN" = "yes" ]; then
+    [ -d "$dir" ] || echo "  [dry-run] would create dir: $dir"
     return 0
   fi
   mkdir -p "$dir"
 }
 
-# Touch a file. Honors --dry-run.
 touch_file() {
-  local file="$1"
-  if [[ "$DRY_RUN" == "yes" ]]; then
-    [[ -f "$file" ]] || echo "  [dry-run] would touch: $file"
+  file="$1"
+  if [ "$DRY_RUN" = "yes" ]; then
+    [ -f "$file" ] || echo "  [dry-run] would touch: $file"
     return 0
   fi
   touch "$file"
 }
 
-# Back up a file before modifying. Returns the backup path on stdout.
 backup_file() {
-  local file="$1"
-  local backup="${file}.pre-eos-sync-${TODAY}"
-  if [[ -f "$file" ]]; then
-    local counter=1
-    while [[ -f "$backup" ]]; do
+  file="$1"
+  backup="${file}.pre-eos-sync-${TODAY}"
+  if [ -f "$file" ]; then
+    counter=1
+    while [ -f "$backup" ]; do
       backup="${file}.pre-eos-sync-${TODAY}.${counter}"
       counter=$((counter + 1))
     done
-    if [[ "$DRY_RUN" == "no" ]]; then
+    if [ "$DRY_RUN" = "no" ]; then
       cp "$file" "$backup"
     fi
     echo "$backup"
@@ -306,23 +313,21 @@ backup_file() {
 }
 
 # ─────────────────────────────────────────────────────────────────
-# Extract sections from template and existing CLAUDE.md
+# Extract sections from template
 # ─────────────────────────────────────────────────────────────────
 
-# Extract HQ STANDARDS section from template
 HQ_SECTION="$(awk '
   /^# HQ STANDARDS$/ { capture=1; print; next }
   /^# PROJECT-SPECIFIC$/ { capture=0 }
   capture { print }
 ' "$TEMPLATE_FILE")"
 
-# Extract empty PROJECT-SPECIFIC scaffold from template
 TEMPLATE_PROJECT_SECTION="$(awk '
   /^# PROJECT-SPECIFIC$/ { capture=1 }
   capture { print }
 ' "$TEMPLATE_FILE")"
 
-if [[ -z "$HQ_SECTION" ]]; then
+if [ -z "$HQ_SECTION" ]; then
   echo "ERROR: could not extract HQ STANDARDS section from template" >&2
   exit 4
 fi
@@ -335,7 +340,6 @@ echo "[1/5] Syncing CLAUDE.md..."
 
 TARGET_CLAUDE="$TARGET/CLAUDE.md"
 
-# Build the standard header that goes at the top of CLAUDE.md
 CLAUDE_HEADER="# CLAUDE.md — ${PRODUCT_NAME}
 
 > **Synced from:** rore-tech-hq @ ${HQ_SHA} on ${TODAY}
@@ -343,8 +347,7 @@ CLAUDE_HEADER="# CLAUDE.md — ${PRODUCT_NAME}
 > Updates flow from HQ at phase kickoff or critical push.
 "
 
-if [[ ! -f "$TARGET_CLAUDE" ]]; then
-  # No existing CLAUDE.md — create fresh from template
+if [ ! -f "$TARGET_CLAUDE" ]; then
   echo "  No existing CLAUDE.md. Creating from template."
 
   NEW_CONTENT="${CLAUDE_HEADER}
@@ -358,15 +361,12 @@ ${TEMPLATE_PROJECT_SECTION}"
   NEXT_ACTIONS+=("Open CLAUDE.md, fill in P1–P10 with actual product specifics, then commit")
 
 else
-  # CLAUDE.md exists. Check for sectioned format.
   HAS_PROJECT_MARKER="no"
   if grep -qE "$PROJECT_SPECIFIC_MARKER" "$TARGET_CLAUDE"; then
     HAS_PROJECT_MARKER="yes"
   fi
 
-  if [[ "$HAS_PROJECT_MARKER" == "no" ]]; then
-    # First sync — existing CLAUDE.md doesn't have sectioned format.
-    # Write a proposal instead of overwriting.
+  if [ "$HAS_PROJECT_MARKER" = "no" ]; then
     PROPOSAL="$TARGET/CLAUDE.md.proposed"
     ORIGINAL_CONTENT="$(cat "$TARGET_CLAUDE")"
 
@@ -401,14 +401,12 @@ ${ORIGINAL_CONTENT}"
     echo "  ANOMALY: existing CLAUDE.md lacks sectioned format. Wrote CLAUDE.md.proposed."
 
   else
-    # Sectioned format exists. Extract PROJECT-SPECIFIC section verbatim
-    # and rebuild CLAUDE.md with new HQ STANDARDS + preserved PROJECT-SPECIFIC.
     PROJECT_SECTION="$(awk '
       /^# PROJECT-SPECIFIC$/ { capture=1 }
       capture { print }
     ' "$TARGET_CLAUDE")"
 
-    if [[ -z "$PROJECT_SECTION" ]]; then
+    if [ -z "$PROJECT_SECTION" ]; then
       echo "ERROR: PROJECT-SPECIFIC marker found but extraction returned empty" >&2
       exit 4
     fi
@@ -418,9 +416,8 @@ ${HQ_SECTION}
 
 ${PROJECT_SECTION}"
 
-    # Check if content would actually change (idempotency)
     EXISTING_CONTENT="$(cat "$TARGET_CLAUDE")"
-    if [[ "$EXISTING_CONTENT" == "$NEW_CONTENT" ]]; then
+    if [ "$EXISTING_CONTENT" = "$NEW_CONTENT" ]; then
       echo "  CLAUDE.md unchanged (idempotent — no diff)."
       FILES_PRESERVED+=("CLAUDE.md (no change needed)")
     else
@@ -439,7 +436,7 @@ fi
 echo "[2/5] Syncing ROUNDTABLE.md..."
 
 TARGET_ROUNDTABLE="$TARGET/ROUNDTABLE.md"
-if [[ -f "$TARGET_ROUNDTABLE" ]]; then
+if [ -f "$TARGET_ROUNDTABLE" ]; then
   if cmp -s "$ROUNDTABLE_FILE" "$TARGET_ROUNDTABLE"; then
     echo "  ROUNDTABLE.md unchanged."
     FILES_PRESERVED+=("ROUNDTABLE.md (no change needed)")
@@ -463,16 +460,16 @@ TARGET_TEMPLATES="$TARGET/docs/templates"
 make_dir "$TARGET_TEMPLATES"
 
 sync_template() {
-  local src="$1"
-  local name="$2"
-  local dst="$TARGET_TEMPLATES/$name"
+  src="$1"
+  name="$2"
+  dst="$TARGET_TEMPLATES/$name"
 
-  if [[ -f "$dst" ]] && cmp -s "$src" "$dst"; then
+  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
     FILES_PRESERVED+=("docs/templates/$name (no change needed)")
     return
   fi
 
-  if [[ -f "$dst" ]]; then
+  if [ -f "$dst" ]; then
     BACKUP="$(backup_file "$dst")"
     copy_file "$src" "$dst"
     FILES_MODIFIED+=("docs/templates/$name (backup: $(basename "$BACKUP"))")
@@ -486,7 +483,6 @@ sync_template "$PHASE_PROTOCOL_TEMPLATE" "PHASE_PROTOCOL_TEMPLATE.md"
 sync_template "$ADR_TEMPLATE" "ADR_TEMPLATE.md"
 sync_template "$BUG_REPORT_PROMPT" "BUG_REPORT_PROMPT.md"
 
-# Ensure docs/protocols and docs/decisions exist
 make_dir "$TARGET/docs/protocols"
 make_dir "$TARGET/docs/decisions"
 
@@ -496,11 +492,11 @@ make_dir "$TARGET/docs/decisions"
 
 echo "[4/5] Syncing Tier 2 artifacts..."
 
-if [[ "$TIER1_ONLY" == "yes" ]]; then
+if [ "$TIER1_ONLY" = "yes" ]; then
   echo "  Skipped (--tier1-only)."
-  if [[ ${#PRODUCT_TIER2[@]} -gt 0 ]]; then
+  if [ ${#PRODUCT_TIER2[@]} -gt 0 ]; then
     for artifact in "${PRODUCT_TIER2[@]}"; do
-      [[ -z "$artifact" ]] && continue
+      [ -z "$artifact" ] && continue
       FILES_SKIPPED+=("$artifact (--tier1-only set; defer to next sync)")
     done
     NEXT_ACTIONS+=("Re-run without --tier1-only at next phase kickoff to pull in Tier 2 checklists")
@@ -509,16 +505,15 @@ else
   TARGET_STANDARDS="$TARGET/docs/standards"
   make_dir "$TARGET_STANDARDS"
 
-  if [[ ${#PRODUCT_TIER2[@]} -eq 0 ]] || [[ -z "${PRODUCT_TIER2[0]:-}" ]]; then
+  if [ ${#PRODUCT_TIER2[@]} -eq 0 ] || [ -z "${PRODUCT_TIER2[0]:-}" ]; then
     echo "  No Tier 2 artifacts declared in manifest for $PRODUCT_KEY."
   else
     for artifact in "${PRODUCT_TIER2[@]}"; do
-      [[ -z "$artifact" ]] && continue
-      src="${TIER2_PATHS[$artifact]}"
+      [ -z "$artifact" ] && continue
+      src="$(get_tier2_path "$artifact")"
       name="$(basename "$src")"
       dst="$TARGET_STANDARDS/$name"
 
-      # Build the synced-version with header prepended to original content
       SYNC_HEADER="> **Synced from:** rore-tech-hq @ ${HQ_SHA} on ${TODAY}
 > Do not edit in this product. Updates flow from HQ.
 "
@@ -526,9 +521,9 @@ else
       SYNCED_CONTENT="${SYNC_HEADER}
 ${SRC_CONTENT}"
 
-      if [[ -f "$dst" ]]; then
+      if [ -f "$dst" ]; then
         EXISTING="$(cat "$dst")"
-        if [[ "$EXISTING" == "$SYNCED_CONTENT" ]]; then
+        if [ "$EXISTING" = "$SYNCED_CONTENT" ]; then
           FILES_PRESERVED+=("docs/standards/$name (no change needed)")
           continue
         fi
@@ -543,11 +538,10 @@ ${SRC_CONTENT}"
   fi
 fi
 
-# Surveillance-adjacent marker (if applicable)
-if [[ "$PRODUCT_SURVEILLANCE" == "yes" ]] && [[ "$TIER1_ONLY" == "no" ]]; then
+if [ "$PRODUCT_SURVEILLANCE" = "yes" ] && [ "$TIER1_ONLY" = "no" ]; then
   AUDIT_DIR="$TARGET/.audit"
   MARKER="$AUDIT_DIR/SURVEILLANCE_ADJACENT"
-  if [[ ! -f "$MARKER" ]]; then
+  if [ ! -f "$MARKER" ]; then
     make_dir "$AUDIT_DIR"
     touch_file "$MARKER"
     FILES_ADDED+=(".audit/SURVEILLANCE_ADJACENT (opts in to stalkerware-pattern audit)")
@@ -562,24 +556,23 @@ fi
 
 echo "[5/5] Updating PROJECT_REGISTRY.md at HQ..."
 
-if [[ ! -f "$REGISTRY_FILE" ]]; then
+if [ ! -f "$REGISTRY_FILE" ]; then
   ANOMALIES+=("PROJECT_REGISTRY.md not found at $REGISTRY_FILE. Skipping registry update.")
 else
-  # Build the Tier 2 list as comma-separated
   TIER2_LIST=""
-  if [[ ${#PRODUCT_TIER2[@]} -gt 0 ]] && [[ -n "${PRODUCT_TIER2[0]:-}" ]]; then
+  if [ ${#PRODUCT_TIER2[@]} -gt 0 ] && [ -n "${PRODUCT_TIER2[0]:-}" ]; then
     for artifact in "${PRODUCT_TIER2[@]}"; do
-      [[ -z "$artifact" ]] && continue
-      if [[ -z "$TIER2_LIST" ]]; then
+      [ -z "$artifact" ] && continue
+      if [ -z "$TIER2_LIST" ]; then
         TIER2_LIST="$artifact"
       else
         TIER2_LIST="${TIER2_LIST},${artifact}"
       fi
     done
   fi
-  [[ -z "$TIER2_LIST" ]] && TIER2_LIST="(none)"
+  [ -z "$TIER2_LIST" ] && TIER2_LIST="(none)"
 
-  if [[ "$TIER1_ONLY" == "yes" ]]; then
+  if [ "$TIER1_ONLY" = "yes" ]; then
     TIER2_STATUS="Tier 1 only"
   else
     TIER2_STATUS="Tier 1 + Tier 2"
@@ -587,11 +580,9 @@ else
 
   NEW_ROW="| $PRODUCT_NAME | $PRODUCT_KEY | $TIER2_STATUS | $HQ_SHA | $TODAY | $TIER2_LIST |"
 
-  if [[ "$DRY_RUN" == "yes" ]]; then
+  if [ "$DRY_RUN" = "yes" ]; then
     echo "  [dry-run] would update PROJECT_REGISTRY.md with row: $NEW_ROW"
   else
-    # Idempotency: if a row for this product already exists, update in place.
-    # Otherwise append before SYNC_ROWS_END marker or at end of file.
     if grep -qE "^\| ${PRODUCT_NAME} \|" "$REGISTRY_FILE" 2>/dev/null; then
       TMP="$(mktemp)"
       awk -v product="$PRODUCT_NAME" -v new_row="$NEW_ROW" '
@@ -623,18 +614,20 @@ echo "Writing SYNC_REPORT.md..."
 
 REPORT="$TARGET/SYNC_REPORT.md"
 
-# Helper to render a list (or "(none)")
+# Render a tracking array as a markdown bullet list, or "(none)" if empty.
+# Takes the array name as argument; uses eval for indirect expansion
+# (POSIX-compatible alternative to namerefs which are bash 4.3+).
 render_list() {
-  local arr_name="$1[@]"
-  local items=("${!arr_name:-}")
-  local out=""
-  if [[ ${#items[@]} -eq 0 ]] || [[ -z "${items[0]:-}" ]]; then
+  arr_name="$1"
+  eval "items=( \"\${${arr_name}[@]:-}\" )"
+  out=""
+  if [ ${#items[@]} -eq 0 ] || [ -z "${items[0]:-}" ]; then
     echo "(none)"
     return
   fi
   for item in "${items[@]}"; do
-    [[ -z "$item" ]] && continue
-    if [[ -z "$out" ]]; then
+    [ -z "$item" ] && continue
+    if [ -z "$out" ]; then
       out="- $item"
     else
       out="${out}
@@ -717,16 +710,16 @@ echo " Files skipped:   ${#FILES_SKIPPED[@]}"
 echo " Anomalies:       ${#ANOMALIES[@]}"
 echo ""
 
-if [[ ${#ANOMALIES[@]} -gt 0 ]] && [[ -n "${ANOMALIES[0]:-}" ]]; then
+if [ ${#ANOMALIES[@]} -gt 0 ] && [ -n "${ANOMALIES[0]:-}" ]; then
   echo " ⚠  ANOMALIES requiring attention:"
   for a in "${ANOMALIES[@]}"; do
-    [[ -z "$a" ]] && continue
+    [ -z "$a" ] && continue
     echo "    - $a"
   done
   echo ""
 fi
 
-if [[ "$DRY_RUN" == "yes" ]]; then
+if [ "$DRY_RUN" = "yes" ]; then
   echo " (dry-run — no files modified)"
   echo ""
 fi
@@ -740,12 +733,11 @@ echo ""
 echo " Then commit manually if approved."
 echo "─────────────────────────────────────────────────────────"
 
-# Anomaly exit code (2) only if we wrote a .proposed file
 for a in "${ANOMALIES[@]}"; do
-  [[ -z "$a" ]] && continue
-  if [[ "$a" == *"CLAUDE.md.proposed"* ]]; then
-    exit 2
-  fi
+  [ -z "$a" ] && continue
+  case "$a" in
+    *"CLAUDE.md.proposed"*) exit 2 ;;
+  esac
 done
 
 exit 0
