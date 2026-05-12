@@ -1,6 +1,7 @@
 # Play Store Submission Checklist
 
-> **Version:** 0.1
+> **Version:** 0.2 (was 0.1; bumped 2026-05-12 from Vibe Spinner
+> adoption intake — added CHANGELOG.md entry check to Section 5)
 > **Owner:** RORE Tech HQ (`rore-tech-hq/eos/checklists/PLAY_STORE_SUBMISSION.md`)
 > **When to use.** Every Play Store submission, including
 > resubmissions. Walked before pressing Submit in Play Console.
@@ -295,6 +296,16 @@
 
 ## Section 5 — Submission and post-submission
 
+- [ ] **CHANGELOG.md has an entry for this version.**
+  *(v0.2, from Vibe Spinner adoption intake 2026-05-12.)* Dated, with
+  user-visible changes summarized. Every Play Console version has a
+  matching CHANGELOG.md entry. Versions in Play Console history
+  with no in-repo CHANGELOG entry indicate release-process drift
+  that compounds: Vibe Spinner shipped v1.0.1, v1.0.2, and v1.0.3
+  to Play Console without changelog entries before the drift was
+  caught. The CHANGELOG entry exists *before* Submit is pressed,
+  not "I'll add it later."
+
 - [ ] **First production release strategy decided.**
   *(`securityspy-LL-006`.)* First releases on Play Console have
   no staged-rollout option. Rollout works by replacing existing
@@ -393,7 +404,15 @@ At the end of the walk, one of the following is recorded:
 ---
 
 *Source-of-truth checklist. Maintained in
-`rore-tech-hq/eos/checklists/PLAY_STORE_SUBMISSION.md`. v0.1
-absorbs DC-A lessons listed in the lesson trace above. Largest
-single-domain checklist; will likely split into a base
-checklist plus a [SENS] supplement if it grows past 8 sections.*
+`rore-tech-hq/eos/checklists/PLAY_STORE_SUBMISSION.md`. v0.2
+absorbs DC-A lessons listed in the lesson trace above plus the
+Vibe Spinner adoption intake (2026-05-12). Largest single-domain
+checklist; will likely split into a base checklist plus a [SENS]
+supplement if it grows past 8 sections.*
+
+*Candidate for cross-cutting CC-12 promotion: if a second
+CHANGELOG-drift lesson lands in any other product (Edge Journal,
+Website, Security SPY, XAGENT, Trade Edge AI, etc.), promote the
+Section 5 CHANGELOG check from PLAY_STORE_SUBMISSION.md to
+HQ STANDARDS as a release-hygiene rule applying to every product
+that ships versioned releases.*
