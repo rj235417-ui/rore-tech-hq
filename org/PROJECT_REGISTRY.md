@@ -23,6 +23,8 @@
 
 | Product | Key | Status | HQ Commit | Last Sync | Tier 2 |
 |---|---|---|---|---|---|
+| VibeFire | VIBEFIRE | Tier 1 only | f740c8c | 2026-05-11 | FIREBASE_FLUTTER_SETUP,PLAY_STORE_SUBMISSION,SIGNING_KEY_BIRTH_CERTIFICATE,LAUNCH_PLAN_TEMPLATE |
+| Vibe Spinner | VIBE_SPINNER | Tier 1 only | 1c5833b | 2026-05-12 | PLAY_STORE_SUBMISSION,SIGNING_KEY_BIRTH_CERTIFICATE,DEPLOYMENT_CHECKLISTS,LAUNCH_PLAN_TEMPLATE |
 <!-- SYNC_ROWS_END -->
 
 ---
@@ -71,6 +73,8 @@
 ---
 
 *Project registry. Maintained automatically by
+| VibeFire | VIBEFIRE | Tier 1 only | f740c8c | 2026-05-11 | FIREBASE_FLUTTER_SETUP,PLAY_STORE_SUBMISSION,SIGNING_KEY_BIRTH_CERTIFICATE,LAUNCH_PLAN_TEMPLATE |
+| Vibe Spinner | VIBE_SPINNER | Tier 1 only | 1c5833b | 2026-05-12 | PLAY_STORE_SUBMISSION,SIGNING_KEY_BIRTH_CERTIFICATE,DEPLOYMENT_CHECKLISTS,LAUNCH_PLAN_TEMPLATE |
 `rore-tech-hq/eos/sync/sync-to-project.sh`. The `SYNC_ROWS_END`
 HTML comment marker is the insertion point for the script —
 new rows go just before it.*
