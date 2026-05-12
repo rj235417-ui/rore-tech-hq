@@ -712,7 +712,7 @@ echo ""
 
 if [ ${#ANOMALIES[@]} -gt 0 ] && [ -n "${ANOMALIES[0]:-}" ]; then
   echo " ⚠  ANOMALIES requiring attention:"
-  for a in "${ANOMALIES[@]}"; do
+  for a in "${ANOMALIES[@]:-}"; do
     [ -z "$a" ] && continue
     echo "    - $a"
   done
@@ -733,11 +733,13 @@ echo ""
 echo " Then commit manually if approved."
 echo "─────────────────────────────────────────────────────────"
 
-for a in "${ANOMALIES[@]}"; do
-  [ -z "$a" ] && continue
-  case "$a" in
-    *"CLAUDE.md.proposed"*) exit 2 ;;
-  esac
-done
+if [ ${#ANOMALIES[@]} -gt 0 ]; then
+  for a in "${ANOMALIES[@]:-}"; do
+    [ -z "$a" ] && continue
+    case "$a" in
+      *"CLAUDE.md.proposed"*) exit 2 ;;
+    esac
+  done
+fi
 
 exit 0
