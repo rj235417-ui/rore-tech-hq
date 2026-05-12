@@ -143,18 +143,36 @@ learned.]
   in the manifest, version-pinned where it matters, and licensed
   acceptably. *(Cross-references DC-E — exact pin no carets.)*
 
-### 5.3 Build, test, and run
+### 5.3 Build, test, and run — observed, not deployed
+
+> **Language note (v0.2, from VibeFire Phase 1 close intake).**
+> "Deployed artifact exists" is **not** equivalent to "observed
+> working." A Cloud Function that deployed successfully but was never
+> invoked from the target device has not been observed. A Firestore
+> ruleset that linted clean but was never roundtripped from the
+> target device has not been observed. The items below require *the
+> operator's direct observation of the behavior on the target
+> hardware or environment*, not a green status in a deploy log.
 
 - [ ] **A clean build succeeds from a fresh checkout.** Not "it
   works on my machine" — actually verified from a fresh state.
 - [ ] **All automated tests pass.** Failing tests are either
   fixed or explicitly waived with reason.
-- [ ] **The product runs end-to-end through the primary user flow
-  added or changed this phase**, on a real device or in the real
-  target environment. *(Cross-references H12.)* For mobile apps:
-  real physical device. For backend services: deployed environment
-  with a `/health` endpoint check. For desktop apps: signed
-  artifact on at least one target OS.
+- [ ] **The operator has personally observed the product running
+  end-to-end** through the primary user flow added or changed this
+  phase, on the real target hardware or environment.
+  *(Cross-references H12.)* For mobile apps: real device flash +
+  run (emulator-only is not sufficient). For backend services:
+  real deployed endpoint hit from outside the deploy environment.
+  For desktop apps: signed/packaged artifact running on a target
+  OS. For data pipelines: real source data flowing through the
+  real pipeline to a real consumer.
+- [ ] **For any feature involving a network roundtrip** (auth,
+  data read/write, third-party API), the operator has personally
+  observed the roundtrip succeed on the target device, on a
+  network the user might realistically be on. Home wifi DNS
+  quirks, captive portals, cellular dropouts, and corporate
+  proxies can all mask "deployed but broken" states for days.
 - [ ] **Logs are clean** of new errors and warnings introduced
   this phase, or each one is acknowledged.
 
@@ -249,6 +267,18 @@ learned.]
   logged in an ADR, not an oversight.
 - [ ] **External communication** (changelog, store listing notes,
   support page) is drafted if user-visible behavior changed.
+- [ ] **Open-items deferred to a future phase have explicit
+  owner + target date + risk acceptance** (v0.2, from VibeFire
+  Phase 1 close intake). Every item carried forward names:
+  1. *Owner* — operator or named collaborator responsible.
+  2. *Target date* — when this gets done, or when this gets
+     re-evaluated.
+  3. *Risk acceptance* — one sentence stating what's being deferred
+     and what the cost is if it slips.
+
+  An open item without all three is not "tracked" — it's hoping.
+  Items without all three are surfaced for operator decision
+  before the gate passes.
 
 ### 5.10 Lessons and intake
 
@@ -304,7 +334,10 @@ One-line ask of HQ: ...
 
 ---
 
-*Phase Protocol template v0.1. Sourced from
-`rore-tech-hq/eos/templates/PHASE_PROTOCOL_TEMPLATE.md`. The
-embedded Exit Gate (Section 5) is synced from
-`rore-tech-hq/eos/checklists/PHASE_EXIT_GATE.md` at phase kickoff.*
+*Phase Protocol template v0.2. Sourced from
+`rore-tech-hq/eos/templates/PHASE_PROTOCOL_TEMPLATE.md`. Bumped
+from v0.1 on 2026-05-12 to mirror PHASE_EXIT_GATE.md v0.2 changes
+(Section 5.3 "observed not deployed" clarification, Section 5.9
+open-items completeness). The embedded Exit Gate (Section 5) is
+synced from `rore-tech-hq/eos/checklists/PHASE_EXIT_GATE.md` at
+phase kickoff.*
