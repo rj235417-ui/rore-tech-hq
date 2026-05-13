@@ -41,6 +41,17 @@ Vibe-Studios
 Security SPY - Silent Lens
 Security SPY: Silent Lens
 
+# Product rename — Trade Edge AI was renamed to RORE Edge AI on
+# 2026-05-14 for brand consistency with RORE Edge Journal. The
+# old name is fully retired and should not appear in any new
+# artifact. Lesson IDs of the form `tradeedge-LL-NNN` are kept
+# intact for cross-reference stability — those reference IDs are
+# *not* caught by this pattern.
+Trade Edge AI
+Trade-Edge AI
+TradeEdge AI
+Catalyst Watch
+
 # Old domain references — if RORE Tech ever used a different domain
 # during early drafts.
 # (Add patterns as discovered.)

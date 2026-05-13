@@ -86,7 +86,7 @@ limit/quota.
 |---|---|---|---|---|---|
 | **RORE Edge Journal** (AI Review feature) | `messages.create` (Sonnet) | Pay-per-token | $0–$50 (depends on user adoption of AI Review) | Per-account TPM limits | console.anthropic.com |
 | **XAGENT** (research/draft/verify pipeline) | `messages.create` (Sonnet, with web_search tool) | Pay-per-token | $5–$20 (covers operator's daily posting cadence) | Per-account TPM limits | console.anthropic.com |
-| **Trade Edge AI** (research dashboards) | `messages.create` (Sonnet) | Pay-per-token | $5–$15 | Per-account TPM limits | console.anthropic.com |
+| **RORE Edge AI** (research dashboards) | `messages.create` (Sonnet) | Pay-per-token | $5–$15 | Per-account TPM limits | console.anthropic.com |
 
 > **Important.** Anthropic API billing is separate from Claude.ai
 > Pro subscription. Per `xagent-LL-001`. Pro covers chat product
@@ -109,8 +109,8 @@ limit/quota.
 
 | Used by | Endpoints | Tier | Monthly cost band | Rate limit | Dashboard |
 |---|---|---|---|---|---|
-| **Trade Edge AI** | `/news`, `/earnings`, `/quote` | Free tier | $0 | 60 calls/min | finnhub.io |
-| Trade Edge AI | `/stock/candle` | **NOT IN FREE TIER** — fallback to Yahoo Finance HTTP API | n/a | n/a | n/a |
+| **RORE Edge AI** | `/news`, `/earnings`, `/quote` | Free tier | $0 | 60 calls/min | finnhub.io |
+| RORE Edge AI | `/stock/candle` | **NOT IN FREE TIER** — fallback to Yahoo Finance HTTP API | n/a | n/a | n/a |
 
 > **Important.** Per `tradeedge-LL-001`. Per-endpoint tier
 > verification done. `/candles` is paid; `/news` and `/quote` are
@@ -121,7 +121,7 @@ limit/quota.
 
 | Used by | Endpoints | Tier | Monthly cost band | Rate limit | Dashboard |
 |---|---|---|---|---|---|
-| **Trade Edge AI** | `query1.finance.yahoo.com/v8/finance/chart/...` | Public, unkeyed | $0 | Soft (rate-limit queue maintains 150ms gap) | n/a (public) |
+| **RORE Edge AI** | `query1.finance.yahoo.com/v8/finance/chart/...` | Public, unkeyed | $0 | Soft (rate-limit queue maintains 150ms gap) | n/a (public) |
 
 > Per `tradeedge-LL-003`, prefer-direct-HTTP over SDK applied:
 > `yahoo-finance2` package was abandoned for direct HTTP because
@@ -164,7 +164,7 @@ limit/quota.
 |---|---|---|---|---|
 | **roretech.com** | Netlify | Free / Starter | $0–$20 | netlify.com |
 | **XAGENT backend** | Railway | Hobby / Pro | $5–$20 | railway.app |
-| **Trade Edge AI** | localhost (no hosting cost) | n/a | $0 | n/a |
+| **RORE Edge AI** | localhost (no hosting cost) | n/a | $0 | n/a |
 | **All product domains** | Namecheap | n/a | ~$15/year per domain | namecheap.com |
 
 ### Email
@@ -188,7 +188,7 @@ limit/quota.
 | Tier | Cost band |
 |---|---|
 | **Bare minimum** (one product live, no AI features active) | ~$25/month |
-| **Current state** (Security SPY live, XAGENT live, Trade Edge AI on localhost, Edge Journal Phase 1, Vibe Spinner closed test, VibeFire Phase 1) | ~$50–$75/month |
+| **Current state** (Security SPY live, XAGENT live, RORE Edge AI on localhost, Edge Journal Phase 1, Vibe Spinner closed test, VibeFire Phase 1) | ~$50–$75/month |
 | **Expected post-launch of all four** | ~$100–$150/month |
 
 These are operator-side costs. Inbound revenue from Security SPY
@@ -233,5 +233,9 @@ This file gets updated:
 ---
 
 *Canonical billing matrix. Maintained in
-`rore-tech-hq/org/BILLING_MATRIX.md`. Last updated: 2026-05-10
-(initial draft).*
+`rore-tech-hq/org/BILLING_MATRIX.md`. Last updated: 2026-05-14
+(Trade Edge AI renamed to RORE Edge AI throughout; all billing
+rows unchanged — stack and dashboards are identical, only the
+display name changed). Note: lesson IDs of the form
+`tradeedge-LL-NNN` refer to RORE Edge AI lessons captured before
+the rename and are kept as-is for cross-reference stability.*

@@ -100,14 +100,21 @@
 | **Stack** | Node.js + Express, Anthropic Claude API, X API, Railway hosting |
 | **Status** | Live for operator's own X account; not a public product |
 
-### Trade Edge AI / Catalyst Watch
+### RORE Edge AI
 
 | Field | Value |
 |---|---|
-| **Display name** | Trade Edge AI |
-| **Type** | Internal tool (operator's own trading dashboard) |
+| **Display name** | RORE Edge AI |
+| **Forbidden variants** | "Trade Edge AI" (deprecated 2026-05-14 — name renamed for brand consistency with RORE Edge Journal), "Catalyst Watch" (early working title; never used externally) |
+| **Type** | Internal tool (operator's own trading research dashboard) |
 | **Distribution** | localhost-only Node.js + browser dashboard |
 | **Status** | Live for operator's use; not a public product |
+
+> **Naming distinction.** RORE Edge AI is *operator-facing only* —
+> a localhost dashboard for the operator's own research. RORE Edge
+> Journal is the *trader-facing* desktop product that ships
+> externally. Both touch the Claude API but serve different
+> audiences and have different compliance frames. Do not conflate.
 
 ### roretech.com (the website)
 
@@ -126,7 +133,7 @@
 |---|---|
 | "Your device. Your data. Your edge." | Cross-product (RORE Tech) |
 | "Trade smarter. Stay secure. Play harder." | Cross-product sub-tagline |
-| "Trade smarter." | Edge Journal (and Trade Edge AI) |
+| "Trade smarter." | Edge Journal (and RORE Edge AI internally) |
 | "Stay secure." | Security SPY |
 | "Play harder." | Vibe Spinner |
 
@@ -143,6 +150,10 @@
   Massachusetts)
 - "Silent Lens" (in any Play Store listing-name field for
   Security SPY)
+- "Trade Edge AI" (renamed to RORE Edge AI on 2026-05-14; old
+  name retired entirely)
+- "Catalyst Watch" (early working title for RORE Edge AI; never
+  used externally)
 
 ---
 
@@ -170,5 +181,6 @@ from this file.
 ---
 
 *Canonical product facts. Maintained in
-`rore-tech-hq/org/PRODUCTS.md`. Last updated: 2026-05-10
-(initial draft).*
+`rore-tech-hq/org/PRODUCTS.md`. Last updated: 2026-05-14 (Trade
+Edge AI renamed to RORE Edge AI; old name added to forbidden
+variants).*
