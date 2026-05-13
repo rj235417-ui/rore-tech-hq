@@ -187,6 +187,7 @@ Each product sits under a different regulatory frame. Agents working on each pro
 6. **Edge Journal AI coaching consent flow.** Per-session consent language should be reviewed once for compliance precision and then locked.
 7. **Backup strategy for Mercury statements and Play Console reports.** Currently informal. Needs a simple monthly capture habit before tax season.
 8. **USPTO application status — operational implications.** Until registration issues, use the ™ symbol (not ®) anywhere the RORE Tech mark appears in product copy, store listings, or marketing. Watch for USPTO office actions during the examination period — they have strict response deadlines (typically 3-6 months) and a missed response abandons the application.
+9. **Storefront drift — roretech.com vs per-product data flow.** Marketing copy on the main site claims 100% on-device for all products. Reality: Edge Journal's AI tab transmits trade data to a local proxy backend (off-device); VibeFire is entirely Firebase-backed (cloud-native). H18 violation. Resolution options: (a) revise marketing copy to per-product nuance, (b) revise per-product feature framing to match marketing, (c) hybrid. Operator decision. Surfaced from Edge Journal EOS adoption 2026-05-13. Lesson trace: `eos/lessons/intake/processed/2026-05-13-edge-journal-adoption.md`.
 
 ---
 

@@ -70,6 +70,60 @@ header prepended.
 
 ---
 
+## During a `.proposed` merge — audit guidance
+
+> *Added v0.2, from Edge Journal adoption intake 2026-05-13.*
+
+The `.proposed` flow exists for the first sync against any project
+with a pre-EOS CLAUDE.md. The mechanical task is merging
+PROJECT-SPECIFIC content from the original into the sectioned
+template. The *opportunity* — and the discipline — is auditing
+the original against current code reality before merging.
+
+Across the first three EOS adoptions, the merge surfaced real
+drift in three of three projects:
+
+- **VibeFire** — documented as "native Android" but actually
+  Flutter. Caught at first sync 2026-05-11.
+- **Vibe Spinner** — documented as "native Android" but actually
+  Capacitor 8 + HTML/CSS/JS. Caught at first sync 2026-05-12.
+- **Edge Journal** — documented an AI tab feature that calls
+  `localhost:3001` with no proxy in repo and no setup docs —
+  shipped-broken state hidden by doc-to-doc consistency. Caught
+  at first sync 2026-05-13.
+
+Three of three is a pattern, not coincidence. The `.proposed`
+flow is the highest-leverage moment for catching documentation
+drift because it forces the operator to read CLAUDE.md word-by-word
+against the current code.
+
+### The audit step
+
+Before accepting any PROJECT-SPECIFIC content into the new
+CLAUDE.md:
+
+1. **List every named external service, endpoint, library, or
+   stack component** in the existing P4 (Architecture overview)
+   and equivalent sections — anything the doc says the product
+   uses or talks to.
+
+2. **For each, grep the repo.** If the named thing isn't there,
+   uses a different pattern, or has no setup documentation, the
+   doc is stale or the feature is broken. Both are findings.
+
+3. **Document the finding** in P3 (per-product hard rules) or
+   P8 (open items) of the new CLAUDE.md, not as a silent fix.
+   Silent fixes lose the audit trail; explicit findings let the
+   next phase address them deliberately.
+
+Doc-to-doc consistency is necessary but not sufficient. The
+adoption sync is the rare moment when someone reads CLAUDE.md
+carefully against the current code; use it.
+
+*Lesson trace: `eos/lessons/intake/processed/2026-05-13-edge-journal-adoption.md`.*
+
+---
+
 ## Safety properties
 
 1. **Never deletes.** The script only adds, modifies, or skips.
@@ -188,4 +242,6 @@ documented and stable.
 
 ---
 
-*Sync system. v0.1. Maintained at `rore-tech-hq/eos/sync/`.*
+*Sync system. v0.2 (was v0.1; bumped 2026-05-13 from Edge Journal
+adoption intake — added .proposed merge audit guidance section).
+Maintained at `rore-tech-hq/eos/sync/`.*
