@@ -1,14 +1,14 @@
 # RORE Tech — Cross-Project Lessons Inventory
 
-> **Version:** 0.2 (bumped 2026-05-16 — added 11 Vibe Spinner lessons LL-022 through LL-032 from Phase 2 iOS scaffold + Phase 3 session 1)
-> **Compiled:** 2026-05-10 (v0.1), updated 2026-05-16 (v0.2)
+> **Version:** 0.3 (bumped 2026-05-19 — added 7 Vibe Spinner lessons LL-033 through LL-039 from Phase 3 close, plus richer content for LL-023/025/026/027/028/029/032 from same source)
+> **Compiled:** 2026-05-10 (v0.1), updated 2026-05-16 (v0.2), updated 2026-05-19 (v0.3)
 > **Source inventories:** 6 — `security_spy_lessons-inventory.md` (22),
-> `vibespin_lessons-inventory.md` (21 → 32 as of v0.2),
+> `vibespin_lessons-inventory.md` (21 → 32 in v0.2 → 39 in v0.3),
 > `Rore_tech_journal_lessons-inventory.md`
 > (22), `Trade_edge_lessons-inventory.md` (20), `xagent_essons-inventory.md`
 > (20), `Rore_tech_website_lessons-inventory.md` (18), plus the VibeFire
 > Phase 1 Firebase Setup Gaps Dump (8 gaps).
-> **Total lessons referenced:** 132 + 8 VibeFire gaps = 140.
+> **Total lessons referenced:** 139 + 8 VibeFire gaps = 147.
 >
 > **What this is.** The single source of truth for everything RORE Tech
 > has learned across products that is worth encoding into a standard or a
@@ -714,6 +714,8 @@ This becomes the *template* for all future service-setup checklists
 - `vibespin-LL-015` — Capacitor sync directionality (`www/` is source).
 - `vibespin-LL-026` — Capacitor 8 uses Swift Package Manager not CocoaPods; no `.xcworkspace` file. Time-saver on every new iOS project.
 - `vibespin-LL-027` — macOS keychain GUI dialogs reject valid passwords that `security unlock-keychain` accepts in terminal. High severity for iOS dev sessions.
+- `vibespin-LL-033` — Capacitor 8 iOS scaffold produces 60+ files across SPM directory structure; project-map reference needed before reviewing diff. Cross-applies to any future Capacitor-Android-from-scratch session.
+- `vibespin-LL-039` — macOS Finder auto-renames duplicates via drag-drop (` 2.md`, ` 3.xml`); periodic `git status` discipline + `.audit/` grep pattern catches.
 - `roreedge-LL-011` — JS temporal dead zone (`const` before declaration); lint from day one.
 - `roreedge-LL-013` — `electron-window-state` package replaced with manual JSON.
 - `securityspy-LL-011` / `LL-012` / `LL-013` — *Note: not numerically present in the inventory I read; these IDs were referenced in a Theme that listed LL-009/010/013/014/015 — verify on next pass.*
@@ -754,7 +756,7 @@ This becomes the *template* for all future service-setup checklists
 | LL-021 | Email infra DNS migration | DC-A |
 | LL-022 | Rebuild beats appeal | DC-A |
 
-## Vibe Spinner (32 lessons)
+## Vibe Spinner (39 lessons)
 
 | ID | Title (short) | Absorbed in |
 |---|---|---|
@@ -780,16 +782,23 @@ This becomes the *template* for all future service-setup checklists
 | LL-020 | Two-folder www drift | CC-1 |
 | LL-021 | Deobfuscation warning triage | DC-A |
 | LL-022 | iOS pre-flight discipline (Apple Dev, xcode-select, Bundle ID) | CC-1, CC-6 — **CC-13 candidate** |
-| LL-023 | Working-tree state before platform-add | CC-2, CC-6 |
+| LL-023 | Working-tree state before platform-add operation | CC-2, CC-6 |
 | LL-024 | npm install protocol during supply-chain campaign | CC-2, DC-E — **new DC candidate** |
-| LL-025 | Descriptive invariants + bypass gates in Claude Code prompts | CC-6 — **CC-14 candidate** |
+| LL-025 | Two-phase Claude Code prompt pattern with sentinel sentence | CC-6 — **CC-14 candidate** |
 | LL-026 | Capacitor 8 uses SPM not CocoaPods | Singleton |
 | LL-027 | macOS keychain GUI rejects valid password | Singleton |
 | LL-028 | iOS plugin static analysis demands purpose strings | CC-5, DC-A — **iOS sibling of LL-002** |
 | LL-029 | Xcode auto-increment writes to archive, not pbxproj | CC-1, CC-8, DC-A |
 | LL-030 | Closed-testing signal beyond defect reports | CC-4 — **CC-15 candidate** |
 | LL-031 | Manual version bumping (4 numbers × 2 files) | CC-1, DC-A — **App Identity Manifest target** |
-| LL-032 | Release notes from CHANGELOG, never invented in dialog | CC-1, DC-A — **PLAY_STORE_SUBMISSION v0.3 candidate** |
+| LL-032 | Release notes from CHANGELOG, never invented in dialog; storefront-truth propagates cross-surface | CC-1, CC-11, DC-A — **PLAY_STORE_SUBMISSION v0.3 + H18+H10+H9 cross-pattern** |
+| LL-033 | Capacitor 8 iOS scaffold project map (60+ files, SPM model) | Singleton |
+| LL-034 | iOS `CURRENT_PROJECT_VERSION` symmetric across Debug + Release configs | CC-1, DC-A — **iOS release-discipline twin of LL-029** |
+| LL-035 | Network-tab verification on real device catches CDN leaks grep misses | CC-2, CC-4 — **H12 sub-rule extension** |
+| LL-036 | Privacy Nutrition Label answers apply to submitted binary, not source | DC-A — **Pre-submission gate item** |
+| LL-037 | Apple W-9 doesn't handle single-member LLC disregarded entities | CC-5 — **per-platform tax-form sub-rule of H13** |
+| LL-038 | Multi-product legal pages share template, share template errors | CC-1, CC-11 — **legal-entity canonical source needed** |
+| LL-039 | macOS Finder phantom duplicates in working tree | Singleton |
 
 ## RORE Edge Journal (22 lessons)
 
@@ -945,65 +954,120 @@ checklist(s) they touch.
 from Phase 2 iOS scaffold → TestFlight (2026-05-14 → 2026-05-15)
 and Phase 3 session 1 Top Speed feature (2026-05-16).
 
-**Rich-content source.** Full lesson detail (What happened / Root
-cause / What we did / What would have prevented it) for LL-022
-through LL-032 lives in the additions document drafted 2026-05-16,
-retained as the canonical reference. This INVENTORY.md holds only
-the summary rows (per existing format).
+**Rich-content source.** Full lesson detail for LL-022 through
+LL-032 lives in the additions document drafted 2026-05-16,
+committed to HQ. This INVENTORY.md holds only the summary rows.
 
-**New cross-cutting pattern candidates flagged** (decisions deferred
-to next monthly review):
+**Cross-cutting pattern candidates flagged** (decisions deferred
+to next monthly review): CC-13 First-Platform Pre-Flight (LL-022),
+CC-14 Structural vs instructional gates in Claude Code prompts
+(LL-025), CC-15 Tester signal beyond defect reports (LL-030),
+new DC candidate NPM_INSTALL_PROTOCOL (LL-024).
 
-- **CC-13 candidate: First-Platform Pre-Flight pattern.** LL-022
-  (iOS Apple Dev pre-flight) is the first instance. Pattern is
-  generalizable to Firebase setup, Stripe integration, Windows
-  code-signing, any first-time platform onboarding. Promote to
-  CC-13 when a second non-iOS instance lands.
+---
 
-- **CC-14 candidate: Structural vs instructional gates in Claude
-  Code prompts.** LL-025 (descriptive invariants + STOP-gate bypass)
-  is the second instance after vibespin-LL-018 (descriptive vs
-  prescriptive prompts). Two-phase prompt pattern (Phase 1 ends with
-  sentinel; Phase 2 sent separately after approval) is the working
-  countermeasure. Promote when a third instance validates.
+## v0.3 update — 2026-05-19
 
-- **CC-15 candidate: Tester signal beyond defect reports.** LL-030
-  is the first instance. Watch for it in Security SPY's eventual
-  closed-testing cycle and Edge Journal's pre-launch.
+**Added.** 7 new Vibe Spinner lessons (LL-033 through LL-039)
+from Phase 3 close-out (2026-05-19): the substantial privacy-
+honesty work (font and image local-bundling), legal pages review
+across three products, and App Store Connect admin completion.
 
-- **New DC candidate: NPM_INSTALL_PROTOCOL.** LL-024 names a
-  hardened protocol for npm install during active supply-chain
-  campaigns. Worth a dedicated DC-style checklist
-  (`rore-tech-hq/eos/checklists/NPM_INSTALL_PROTOCOL.md`) given
-  the criticality and ongoing exposure during the Mini Shai-Hulud
-  campaign window.
+**Richer content for existing entries.** LL-023, LL-025, LL-026,
+LL-027, LL-028, LL-029, and LL-032 each gained richer treatment
+in the 2026-05-19 source document — the underlying lessons are
+the same, but the analysis (root cause, what would have prevented
+it) is more developed. The summary rows in this INVENTORY.md were
+updated to reflect the sharper framing; the full content lives in
+the rich-content reference file committed alongside this update.
 
-**Cross-references added.**
+**Rich-content source.** Full lesson detail for LL-033 through
+LL-039 (plus the richer treatment of LL-023/025/026/027/028/029/032)
+lives in `eos/lessons/source/vibespin-LL022-LL035-from-handoff-2026-05-19.md`,
+drafted from the Vibe Spinner Phase 4 handoff document during the
+Phase 3 close-out.
 
-- LL-028 is the iOS sibling of vibespin-LL-002 (Capacitor camera
-  plugin auto-declared Android permission). Same shape, different
-  platform. Both belong to CC-5 (per-endpoint/per-operation/per-
-  platform compliance).
+**Net-new lessons.**
 
-- LL-029 (Xcode CURRENT_PROJECT_VERSION auto-increment writes to
-  archive, not source) is the iOS sibling of vibespin-LL-007
-  (Android versionCode collisions). Both feed into the App
-  Identity Manifest tooling target named in LL-031.
+- **LL-033** — Capacitor 8 iOS scaffold project map. 60+ files
+  across `ios/App/App/`, `ios/App/App.xcodeproj/`, `ios/App/CapApp-SPM/`.
+  Singleton; companion to LL-022 (Apple Dev pre-flight) and
+  LL-023 (working-tree state). Reference doc needed in HQ.
 
-- LL-031 and LL-032 directly tie to the existing PLAY_STORE_
-  SUBMISSION.md v0.2 CHANGELOG check; v0.3 should tighten the
-  rule to "CHANGELOG entry before upload dialog opened, release
-  notes pasted FROM CHANGELOG, never invented in dialog."
+- **LL-034** — `CURRENT_PROJECT_VERSION` must be symmetric across
+  Debug AND Release configs in `project.pbxproj`. Discovered after
+  the second iOS archive when a Debug build showed wrong version
+  on simulator. Pre-archive check item.
 
-**Process note.** These 11 lessons were captured at full inventory
-depth during the Vibe Spinner phase close + session 1 (separate
-additions document), and the intake protocol was retroactively
-filed via two summary intakes plus a meta-intake on the bypass
-itself. INTAKE_PROTOCOL.md should be updated at next monthly
-review to formally accommodate the "direct inventory capture"
-path for cases where the operator captures at full inventory
-depth during work — making the bypass a documented procedure
-rather than a slip.
+- **LL-035** — Network-tab verification on real device catches CDN
+  data leaks that grep + static analysis miss. Surfaced two real
+  privacy violations (Google Fonts CDN, Unsplash CDN) during
+  Privacy Nutrition Label prep on 2026-05-19. Both were bundled
+  locally before App Store submission. H12 sub-rule extension.
+
+- **LL-036** — Privacy Nutrition Label answers apply to the
+  submitted binary, not source on main. Easy to answer the App
+  Store Privacy questionnaire honestly against future intent while
+  the actual in-flight binary contradicts. Pre-submission gate
+  item: build SHA must be ≥ SHA at which privacy answers were
+  last verified accurate.
+
+- **LL-037** — Apple W-9 form doesn't handle single-member LLC
+  disregarded entities cleanly. RORE Tech LLC enrolled as
+  Organization; W-9 offers Individual/sole-prop, LLC-C-Corp,
+  LLC-S-Corp, LLC-Partnership — none match single-member-LLC-
+  with-EIN-disregarded-entity. Apple Support ticket open. Per-
+  platform tax-form sub-rule of H13.
+
+- **LL-038** — Multi-product website legal pages share a template;
+  they share the template's errors. Delaware governing-law claim
+  was wrong (RORE Tech LLC is Massachusetts-domiciled), and the
+  error propagated to three products. Vibe Spinner-specific
+  Roundtable caught it first. H9 (canonical source) + H10 (audit
+  pattern) cross-pattern. **CC-12 promotion candidate confirmed
+  as second instance after Vibe Spinner CHANGELOG drift** — but
+  note that the *pattern* is different (legal-template drift, not
+  CHANGELOG drift). Worth surfacing at monthly review whether
+  these are one cross-cutting pattern (canonical-source drift
+  across products) or two separate patterns.
+
+- **LL-039** — macOS Finder auto-renames create phantom duplicates
+  (` 2.md`, ` 3.xml` suffixes) in working tree. Light lesson,
+  singleton, `.audit/` grep pattern addition.
+
+**Cross-cutting pattern observations** (decisions still deferred):
+
+- **CC-12 candidate (CHANGELOG drift) — first instance from
+  Vibe Spinner adoption 2026-05-12, but no second instance has
+  surfaced. LL-038 (legal template drift) is a *related* pattern
+  but not the same.** Monthly review should consider whether
+  CC-12 is "CHANGELOG drift specifically" or broader "canonical-
+  source drift across N surfaces" — the latter captures both
+  CHANGELOG drift and legal-template drift and is the more
+  durable framing.
+
+- **CC-14 candidate (structural vs instructional gates in
+  Claude Code prompts) — strongly reinforced by LL-025's
+  richer content.** The two-phase prompt with sentinel sentence
+  pattern is now the working countermeasure across both feature
+  work and bug-fix work. Promote to CC-14 at next monthly review
+  unless an alternative pattern emerges.
+
+- **App Identity Manifest tooling target** (LL-031) gains LL-034
+  as another instance. Tooling task remains queued.
+
+**Process note — ID collision resolved.** This v0.3 update
+incorporates a new lesson file (`lessons-LL022-LL035-for-HQ.md`)
+that used a different ID numbering scheme than v0.2's INVENTORY.md.
+The merge preserved v0.2's IDs as canonical, integrated richer
+content from the new file where lessons matched conceptually, and
+gave net-new lessons new IDs (LL-033 through LL-039). The
+collision is itself a lesson: **lesson IDs must be assigned by
+HQ at filing time, not by the product project at drafting time.**
+Product-side drafts should use placeholder IDs (LL-NEXT-1,
+LL-NEXT-2, ...) and HQ assigns final IDs during merge. Otherwise
+two parallel sessions inevitably collide. A meta-intake captures
+this for next monthly review.
 
 **Carry-over from v0.1.** Two minor follow-ups remain:
 (a) re-read the SecuritySpy inventory section LL-011/012/013
@@ -1012,5 +1076,5 @@ which were elided in the truncated read,
 which would promote the Edge Journal LL-019 / Trade Edge LL-020
 pair into a cross-cutting pattern.
 
-**Total now.** 132 cross-product lessons + 8 VibeFire gaps = 140
+**Total now.** 139 cross-product lessons + 8 VibeFire gaps = 147
 absorbed.
